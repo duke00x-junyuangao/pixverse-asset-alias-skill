@@ -1,0 +1,91 @@
+#!/bin/bash
+#
+# pvcreate - Wrapper for pixverse create with automatic alias saving
+#
+# Usage: pvcreate [image|video] [options] [--save-alias <name>]
+#
+# Examples:
+#   pvcreate image --prompt "A sunset" --json --save-alias 日落_v1
+#   pvcreate video --prompt "Animate this" --image ./photo.jpg --json --save-alias 动画_01
+#
+
+set -e
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+SAVE_ALIAS=""
+PASSTHROUGH_ARGS=()
+
+# Parse arguments, extract --save-alias
+while [[ $# -gt 0 ]]; do
+    case $1 in
+        --save-alias)
+            SAVE_ALIAS="$2"
+            shift 2
+            ;;
+        --save-alias=*)
+            SAVE_ALIAS="${1#*=}"
+            shift
+            ;;
+        *)
+            PASSTHROUGH_ARGS+=("$1")
+            shift
+            ;;
+    esac
+done
+
+# Check if first arg is a valid subcommand
+COMMAND="${PASSTHROUGH_ARGS[0]:-}"
+VALID_COMMANDS=("image" "video" "transition" "speech" "sound" "extend" "modify" "upscale" "reference" "template")
+
+is_valid=false
+for cmd in "${VALID_COMMANDS[@]}"; do
+    if [[ "$COMMAND" == "$cmd" ]]; then
+        is_valid=true
+        break
+    fi
+done
+
+if [[ "$is_valid" == false ]]; then
+    echo "Error: Unknown or missing command '$COMMAND'" >&2
+    echo "Valid commands: ${VALID_COMMANDS[*]}" >&2
+    exit 1
+fi
+
+# Check if --json is in args
+has_json=false
+for arg in "${PASSTHROUGH_ARGS[@]}"; do
+    if [[ "$arg" == "--json" ]]; then
+        has_json=true
+        break
+    fi
+done
+
+# Add --json if not present
+if [[ "$has_json" == false ]]; then
+    PASSTHROUGH_ARGS+=("--json")
+fi
+
+# Run pixverse create
+TEMP_OUTPUT=$(mktemp)
+trap "rm -f $TEMP_OUTPUT" EXIT
+
+echo "Running: pixverse create ${PASSTHROUGH_ARGS[*]}" >&2
+
+if ! pixverse create "${PASSTHROUGH_ARGS[@]}" > "$TEMP_OUTPUT" 2>&1; then
+    cat "$TEMP_OUTPUT"
+    exit 1
+fi
+
+# Output the JSON result
+cat "$TEMP_OUTPUT"
+
+# Auto-save alias if requested
+if [[ -n "$SAVE_ALIAS" ]]; then
+    echo "" >&2
+    echo "Auto-saving alias '$SAVE_ALIAS'..." >&2
+
+    if ! python "$SCRIPT_DIR/manage_assets.py" add-from-json --alias "$SAVE_ALIAS" < "$TEMP_OUTPUT"; then
+        echo "Warning: Failed to save alias (see above)" >&2
+        exit 0  # Don't fail the whole command
+    fi
+fi

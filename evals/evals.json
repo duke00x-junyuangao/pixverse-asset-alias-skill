@@ -1,0 +1,41 @@
+{
+  "skill_name": "pixverse-asset-alias",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Upload ./my_character.png to PixVerse as 萧千灵_v1",
+      "expected_output": "Uploads image to PixVerse and saves alias mapping 萧千灵_v1 -> ./my_character.png in ~/.claude/pixverse_assets.json",
+      "files": []
+    },
+    {
+      "id": 2,
+      "prompt": "List all my PixVerse aliases",
+      "expected_output": "Displays a table of all registered aliases with their paths and asset IDs",
+      "files": []
+    },
+    {
+      "id": 3,
+      "prompt": "pixverse create video --prompt \"Slow zoom in on face\" --萧千灵_v1",
+      "expected_output": "First time: asks for confirmation, then executes 'pixverse create video --prompt \"Slow zoom in on face\" --image ./my_character.png'. After confirmation, sets confirm_before_replace to false for future automatic execution.",
+      "files": []
+    },
+    {
+      "id": 4,
+      "prompt": "Alias my existing PixVerse asset asset_abc123 as 测试角色_v2",
+      "expected_output": "Adds entry to pixverse_assets.json mapping 测试角色_v2 to the existing asset",
+      "files": []
+    },
+    {
+      "id": 5,
+      "prompt": "Remove alias 萧千灵_v1",
+      "expected_output": "Removes the 萧千灵_v1 entry from the assets database",
+      "files": []
+    },
+    {
+      "id": 6,
+      "prompt": "Rename alias 萧千灵_v1 to 萧千灵_final",
+      "expected_output": "Updates the alias name while preserving the path and asset ID",
+      "files": []
+    }
+  ]
+}
